@@ -5,7 +5,7 @@ data Direction = North | South | West | East
 type Position = (Int, Int)
 type Cell = [Direction]
 
-go :: Direction -> Position -> Position
+go :: Int -> Direction -> Position -> Position
 go n North (ew, ns) = (ew, ns+n)
 go n South (ew, ns) = (ew, ns-n)
 go n East (ew, ns) = (ew+n, ns)
