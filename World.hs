@@ -11,6 +11,7 @@ type Position = (Int, Int)
 type Cell = [Direction]
 
 data Maze = Mz (M.Map Position Cell) Int Int
+          deriving(Show)
 
 go :: Int -> Direction -> Position -> Position
 go n North (ew, ns) = (ew, ns+n)
@@ -33,6 +34,8 @@ validMove maze (x1, y1) (x2, y2)
                                      || (not (hasWall maze (x2, y2) West))
 
 fromList :: [(Position, [Direction])] -> Maze
-fromList lst = Mz (M.fromList lst) (maximum xCoords) (maximum yCoords)
+fromList lst = Mz (M.fromList lst) (maximum xCoords + 1) (maximum yCoords + 1)
          where xCoords = [x | ((x,_), dir) <- lst]
                yCoords = [y | ((_,y), dir) <- lst]
+
+testMase = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),((0,2),[South,West]),((0,3),[West,East]),((0,4),[North,West]),((1,0),[South]),((1,1),[North]),((1,2),[South,East]),((1,3),[North,West]),((1,4),[North,South,East]),((2,0),[North,South]),((2,1),[South,East]),((2,2),[West,East]),((2,3),[]),((2,4),[North,West,East]),((3,0),[North,South]),((3,1),[South,West]),((3,2),[West]),((3,3),[]),((3,4),[North,West,East]),((4,0),[North,South,East]),((4,1),[North,South,East]),((4,2),[North,South,East]),((4,3),[South,East]),((4,4),[North,West,East])]
