@@ -25,9 +25,14 @@ validMove :: Maze -> Position -> Position -> Bool
 validMove maze (x1, y1) (x2, y2) 
           | x1 == x2 && y1 == y2+1 = (not (hasWall maze (x1, y1) South))
                                      || (not (hasWall maze (x2, y2) North))
-          | x1 == x2 && y1+1 == y2 = (not (hasWall maze (x1, y1) North))
+          | x1 == x2 && y1+1 == y2 = (not (hasWall maze (x1, y1) North))        
                                      || (not (hasWall maze (x2, y2) South))
           | y1 == y2 && x1 == x2+1 = (not (hasWall maze (x1, y1) West))
                                      || (not (hasWall maze (x2, y2) East))
           | y1 == y2 && x1+1 == x2 = (not (hasWall maze (x1, y1) East))
                                      || (not (hasWall maze (x2, y2) West))
+
+fromList :: [(Position, [Direction])] -> Maze
+fromList lst = Mz (M.fromList lst) (maximum xCoords) (maximum yCoords)
+         where xCoords = [x | ((x,_), dir) <- lst]
+               yCoords = [y | ((_,y), dir) <- lst]
