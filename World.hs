@@ -13,8 +13,8 @@ type Position = (Int, Int)
 type Cell = [Direction]
 
 data Maze = Maze { posToCell :: (M.Map Position Cell),
-                   height :: Int,
-                   width :: Int 
+                   width :: Int,
+                   height :: Int 
                    } deriving(Show)
 
 go :: Int -> Direction -> Position -> Position
@@ -46,4 +46,13 @@ testMase = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),((0,2
 
 --- PART 2: A MEL interpreter
 
--- type Robot = Rbt
+data Robot = Robot { position :: Position,
+                     direction :: Direction,
+                     history :: [Position] }
+
+data World = World { maze :: Maze,
+                     robot :: Robot }
+
+initialWorld :: Maze -> World
+initialWorld maze = World maze robot
+             where robot = Robot (0,0) North []
