@@ -44,7 +44,25 @@ fromList lst = Maze (M.fromList lst) (maximum xCoords + 1) (maximum yCoords + 1)
 
 testMase = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),((0,2),[South,West]),((0,3),[West,East]),((0,4),[North,West]),((1,0),[South]),((1,1),[North]),((1,2),[South,East]),((1,3),[North,West]),((1,4),[North,South,East]),((2,0),[North,South]),((2,1),[South,East]),((2,2),[West,East]),((2,3),[]),((2,4),[North,West,East]),((3,0),[North,South]),((3,1),[South,West]),((3,2),[West]),((3,3),[]),((3,4),[North,West,East]),((4,0),[North,South,East]),((4,1),[North,South,East]),((4,2),[North,South,East]),((4,3),[South,East]),((4,4),[North,West,East])]
 
---- PART 2: A MEL interpreter
+-- PART 2: A MEL interpreter
+
+data Relative = Ahead | ToLeft | ToRight | Behind
+              deriving (Eq, Show)
+
+data Cond = Wall Relative
+          | And  Cond Cond
+          | Not  Cond
+          | AtGoalPos
+          deriving (Eq, Show)
+            
+data Stm = Forward
+         | Backward
+         | TurnRight
+         | TurnLeft    
+         | If Cond Stm Stm
+         | While Cond Stm
+         | Block [Stm]
+         deriving (Eq, Show)
 
 data Robot = Robot { position :: Position,
                      direction :: Direction,
@@ -56,3 +74,14 @@ data World = World { maze :: Maze,
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
              where robot = Robot (0,0) North []
+
+-- RobotCommand and it's Monad implementation heavily influenced
+-- by the State monad.
+newtype RobotCommand a = RC { runRC :: World -> Maybe (a, World) }
+
+instance Monad RobotCommand where
+         return x = RC (\w -> Just (x, w))
+         processor >>= processorGenerator = RC $ \w -> 
+                                   let Just (x, w') = runRC processor w
+                                   in runRC (processorGenerator x) w'
+         
