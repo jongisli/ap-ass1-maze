@@ -74,7 +74,7 @@ data World = World { maze :: Maze,
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (0,0) North []
+             where robot = Robot (1,0) East []
 
 -- RobotCommand and it's Monad implementation heavily influenced
 -- by the State monad.
@@ -88,10 +88,26 @@ instance Monad RobotCommand where
         
 interp :: Stm -> RobotCommand ()
 interp Forward = RC (\w ->
-    Just ((),
+    if not (hasWall (maze w) (position (robot w)) (direction (robot w))) then
+       Just ((),
          World
 	   (maze w)
 	   (Robot
 	     (go 1 (direction (robot w)) (position (robot w)))
 	     (direction (robot w))
-	     (history (robot w)))))
+	     (history (robot w))))
+    else
+       Nothing
+  )
+interp Backward = RC (\w ->
+    if (hasWall (maze w) (position (robot w)) (direction (robot w))) then
+       Just ((),
+         World
+	   (maze w)
+	   (Robot
+	     (go (-1) (direction (robot w)) (position (robot w)))
+	     (direction (robot w))
+	     (history (robot w))))
+    else
+       Nothing
+  )
