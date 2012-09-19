@@ -67,9 +67,10 @@ data Stm = Forward
 data Robot = Robot { position :: Position,
                      direction :: Direction,
                      history :: [Position] }
-
+             deriving(Show)
 data World = World { maze :: Maze,
                      robot :: Robot }
+            deriving(Show)
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
@@ -84,4 +85,13 @@ instance Monad RobotCommand where
          processor >>= processorGenerator = RC $ \w -> 
                                    let Just (x, w') = runRC processor w
                                    in runRC (processorGenerator x) w'
-         
+        
+interp :: Stm -> RobotCommand ()
+interp Forward = RC (\w ->
+    Just ((),
+         World
+	   (maze w)
+	   (Robot
+	     (go 1 (direction (robot w)) (position (robot w)))
+	     (direction (robot w))
+	     (history (robot w)))))
