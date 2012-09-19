@@ -74,7 +74,7 @@ data World = World { maze :: Maze,
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (1,0) East []
+             where robot = Robot (0,0) North []
 
 -- RobotCommand and it's Monad implementation heavily influenced
 -- by the State monad.
@@ -86,6 +86,38 @@ instance Monad RobotCommand where
                                    let Just (x, w') = runRC processor w
                                    in runRC (processorGenerator x) w'
         
+oppositeDirection :: Robot -> Direction
+oppositeDirection robot = case (direction robot) of
+                  North -> South
+                  South -> North
+                  East -> West
+                  West -> East
+
+turnRight :: Robot -> Direction
+turnRight robot = case (direction robot) of
+                  North -> East
+                  South -> West
+                  East -> South
+                  West -> North
+
+turnLeft :: Robot -> Direction
+turnLeft robot = case (direction robot) of
+                 North -> West
+                 South -> East
+                 East -> North
+                 West -> South
+
+evalCond :: Cond -> World -> Bool
+evalCond (Wall relative) w = case relative of
+                         Ahead -> hasWall mz pos dir
+                         ToLeft -> hasWall mz pos (turnLeft (robot w))
+                         ToRight -> hasWall mz pos (turnRight (robot w))
+                         Behind -> hasWall mz pos (oppositeDirection (robot w))
+                         where
+                         mz = maze w
+                         pos = position (robot w)
+                         dir = direction (robot w)
+
 interp :: Stm -> RobotCommand ()
 interp Forward = RC (\w ->
     if not (hasWall (maze w) (position (robot w)) (direction (robot w))) then
@@ -100,7 +132,7 @@ interp Forward = RC (\w ->
        Nothing
   )
 interp Backward = RC (\w ->
-    if (hasWall (maze w) (position (robot w)) (direction (robot w))) then
+    if not (hasWall (maze w) (position (robot w)) (oppositeDirection (robot w))) then
        Just ((),
          World
 	   (maze w)
@@ -111,3 +143,19 @@ interp Backward = RC (\w ->
     else
        Nothing
   )
+interp TurnRight = RC (\w ->
+    Just ((),
+      World
+        (maze w)
+        (Robot
+          (position (robot w))
+          (turnRight (robot w))
+          (history (robot w)))))
+interp TurnLeft = RC (\w ->
+    Just ((),
+      World
+        (maze w)
+        (Robot
+          (position (robot w))
+          (turnLeft (robot w))
+          (history (robot w)))))                      
