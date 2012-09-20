@@ -74,7 +74,7 @@ data World = World { maze :: Maze,
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (0,0) North []
+             where robot = Robot (0,0) East []
 
 -- RobotCommand and it's Monad implementation heavily influenced
 -- by the State monad.
@@ -117,6 +117,7 @@ evalCond (Wall relative) w = case relative of
                          mz = maze w
                          pos = position (robot w)
                          dir = direction (robot w)
+evalCond (Not c) w = not (evalCond c w)
 
 interp :: Stm -> RobotCommand ()
 interp Forward = RC (\w ->
@@ -164,6 +165,14 @@ interp (If c s1 s2) = RC (\w ->
         (runRC (interp s1) w)
     else 
         (runRC (interp s2) w))
+interp (While c s) = RC (\w ->
+    if (not $ evalCond c w) then
+        Just ((), w)
+    else
+        let runRCres = runRC (interp s) w in
+        case runRCres of
+             Nothing -> Nothing
+             Just (_,w') -> (runRC (interp (While c s)) w'))
 
 
 
