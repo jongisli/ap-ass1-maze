@@ -159,5 +159,7 @@ interp TurnLeft = RC (\w ->
           (position (robot w))
           (turnLeft (robot w))
           (history (robot w)))))
+
+
 -- Block case will be just like the [IO a] -> IO [a] from class
-interp Block [] ->                
+-- interp Block [] ->                
