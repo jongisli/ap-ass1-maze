@@ -159,7 +159,21 @@ interp TurnLeft = RC (\w ->
           (position (robot w))
           (turnLeft (robot w))
           (history (robot w)))))
+interp (If c s1 s2) = RC (\w -> 
+    if (evalCond c w) then 
+        (runRC (interp s1) w)
+    else 
+        (runRC (interp s2) w))
+
+
 
 
 -- Block case will be just like the [IO a] -> IO [a] from class
--- interp Block [] ->                
+
+-- World :: RobotCommand World
+-- setRobot :: Robot -> RobotCommand()
+
+-- interp Forward = do w <- World
+--                     let r = robot w
+--                     r' <- do shit to the robot
+--                     setRobot r'
