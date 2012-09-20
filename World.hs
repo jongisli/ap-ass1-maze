@@ -43,6 +43,7 @@ fromList lst = Maze (M.fromList lst) (maximum xCoords + 1) (maximum yCoords + 1)
                yCoords = [y | ((_,y), dir) <- lst]
 
 testMase = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),((0,2),[South,West]),((0,3),[West,East]),((0,4),[North,West]),((1,0),[South]),((1,1),[North]),((1,2),[South,East]),((1,3),[North,West]),((1,4),[North,South,East]),((2,0),[North,South]),((2,1),[South,East]),((2,2),[West,East]),((2,3),[]),((2,4),[North,West,East]),((3,0),[North,South]),((3,1),[South,West]),((3,2),[West]),((3,3),[]),((3,4),[North,West,East]),((4,0),[North,South,East]),((4,1),[North,South,East]),((4,2),[North,South,East]),((4,3),[South,East]),((4,4),[North,West,East])]
+testMaze = fromList [((0,0),[South,West]),((0,1),[North,West,East]),((1,0),[South,East]),((1,1),[North,East,West])]
 
 -- PART 2: A MEL interpreter
 
@@ -72,9 +73,16 @@ data World = World { maze :: Maze,
                      robot :: Robot }
             deriving(Show)
 
+data Program = Program {statement :: Stm}
+
+type Result = Maybe
+
+crazyProgram = Program{statement=(Block [TurnRight,
+   While (And (Not (AtGoalPos)) (Not $ Not $ Not $ AtGoalPos)) (If (Not (Wall Ahead)) Forward (Block [TurnLeft, Forward, TurnRight]))])} 
+
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (0,0) East []
+             where robot = Robot (0,0) North [(0,0)]
 
 -- RobotCommand and it's Monad implementation heavily influenced
 -- by the State monad.
@@ -118,6 +126,11 @@ evalCond (Wall relative) w = case relative of
                          pos = position (robot w)
                          dir = direction (robot w)
 evalCond (Not c) w = not (evalCond c w)
+evalCond (And c1 c2) w = (evalCond c1 w) && (evalCond c2 w)
+evalCond AtGoalPos w = (position robo) == (width',height')
+                       where robo = robot w
+                             width' = (width (maze w)) - 1
+                             height' = (height (maze w)) - 1
 
 interp :: Stm -> RobotCommand ()
 interp Forward = RC (\w ->
@@ -125,10 +138,11 @@ interp Forward = RC (\w ->
        Just ((),
          World
 	   (maze w)
+           (let p = (go 1 (direction (robot w)) (position (robot w))) in
 	   (Robot
-	     (go 1 (direction (robot w)) (position (robot w)))
+	     p
 	     (direction (robot w))
-	     (history (robot w))))
+	     (p:(history (robot w))))))
     else
        Nothing
   )
@@ -137,10 +151,11 @@ interp Backward = RC (\w ->
        Just ((),
          World
 	   (maze w)
+	   (let p = (go (-1) (direction (robot w)) (position (robot w))) in
 	   (Robot
-	     (go (-1) (direction (robot w)) (position (robot w)))
+	     p
 	     (direction (robot w))
-	     (history (robot w))))
+	     (p:(history (robot w))))))
     else
        Nothing
   )
@@ -173,6 +188,21 @@ interp (While c s) = RC (\w ->
         case runRCres of
              Nothing -> Nothing
              Just (_,w') -> (runRC (interp (While c s)) w'))
+interp (Block []) = RC (\w -> Just((),w))
+interp (Block (s:ss)) = RC (\w ->
+                      let runRCres = runRC (interp s) w in
+                      case runRCres of
+                           Nothing -> Nothing
+                           Just (_,w') -> (runRC (interp (Block ss)) w'))
+
+runProg :: Maze -> Program -> Result ([Position], Direction)
+runProg m p = let w = (initialWorld m)
+                  rc = (interp (statement p)) in
+                  do
+                      (_,w') <-  (runRC rc) w
+                      let robo = robot w'
+                      return (history robo, direction robo)
+                 
 
 
 
