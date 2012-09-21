@@ -47,10 +47,11 @@ where we use the record syntax for our Maze for easier access to the values. We 
 \begin{enumerate}[i.]
 	\item \verb=go :: Int -> Direction -> Position -> Position=
 	\item \verb=hasWall :: Maze -> Position -> Direction -> Bool=
-	\item \verb=validMove :: Maze -> Position -> Position -> Bool=
+	\item \verb=hasBorder :: Maze -> Position -> Direction -> Bool=
+	\item \verb=validMove :: Maze -> Position -> Direction -> Bool=
 	\item \verb=fromList :: [(Position, [Direction])] -> Maze=.
 \end{enumerate}
-Most of those functions are self explanatory. We should still note that \verb=go= takes an \verb=Int= as a parameter. By doing that we can tell the robot to move one cell in the opposite direction by setting this parameter to $-1$. In this part of the code we also included some of the test mazes we used while developing the code to verify (or justify) that we were on the right track.
+We should still note that \verb=go= takes an \verb=Int= as a parameter. By doing that we can tell the robot to move one cell in the opposite direction by setting this parameter to $-1$. In this part of the code we also included some of the test mazes we used while developing the code to verify (or justify) that we were on the right track. The functions \verb=hasWall= and \verb=hasBorder= check if there is a wall or if the border of the maze is in the direction of the given position in the maze. The function \verb=validMove= just checks that neither of the \verb=hasWall= and \verb=hasBorder= functions return true. The \verb=fromList= function takes a list of tuples of positions and cells and creates a maze.
 
 \subsection{A MEL interpreter}
 
@@ -90,18 +91,100 @@ type Result = Maybe
 newtype RobotCommand a = RC { runRC :: World -> Maybe (a, World) }
 \end{verbatim}
 Here we also use the record syntax in \verb=Robot= and \verb=World= for easier access to values. The type \verb=Program= was also modified to use record syntax.
-For this part we wrote some functions for initialising worlds, interpreting statements, running programs and various helper functions the function
+For this part we wrote some functions for initialising worlds, interpreting statements, running programs and various helper functions. The function
 \begin{verbatim}
 initialWorld :: Maze -> World
 \end{verbatim}
-takes a maze and returns a world where the robot is in position $(0,0)$ and facing north. Our function for interpreting statements
+takes a maze and returns a world where the robot is in position $(0,0)$ and facing north. 
+
+Our function for interpreting statements
 \begin{verbatim}
 interp :: Stm -> RobotCommand ()
 \end{verbatim}
-Pattern matches on all possible statements and returns an appropriate RobotCommand.
+pattern matches on all possible statements and returns an appropriate RobotCommand.
 
+The function 
+\begin{verbatim}
+runProg :: Maze -> Program -> Result ([Position], Direction)
+\end{verbatim}
+Takes a maze and a program, which is essentially a statement, and returns the move history and the direction after executing the program. If execution fails, the result is \verb=Nothing=.
 
+\section{Assessment of the code}
 
+Our data structures were the most part defined in the problem description. Types that we needed to define ourselves we tried to keep as simple as possible. The functions for querying and moving the robot around in the maze are also trivial and mostly based on pattern matching. One thing to note in this part is that the function fromList traverses the list \verb=lst= twice which is obviously inefficient.
+
+An experienced Haskell programmer might not find the implementation of \verb=interp= too elegant. For example the interpreter is not monadic. Although the code is not elegant it is quite robust. We did unit tests for all functions and tested edge cases like the robot hitting a wall or walking outside the maze.
+
+\subsection{Unit testing}
+
+We did eight unit tests which were all successful:
+\begin{enumerate}[i.]
+\item Unit test for the \verb=go= function:
+\begin{verbatim}
+test1 = TestCase $ assertBool "Go 3 north" $ (0,3) == (go 3 North (0,0))
+\end{verbatim}
+We try to move 3 to the north from the position $(0,0)$, which should result in $(0,3)$
+
+\item Unit test for \verb=hasWall=
+\begin{verbatim}
+test2 = TestCase $ assertBool "Check hasWall in testMase" $ 
+        (hasWall test1Maze (0,0) West) && (not $ hasWall test1Maze (0,0) East)
+\end{verbatim}
+Checks whether \verb=hasWall= detects a wall to the west and an opening to the east of the test maze given in the problem description.
+
+\item Unit test for \verb=oppositeDirection=
+\begin{verbatim}
+test3 = TestCase $ assertBool "Opposite direction" $ 
+        ((oppositeDirection (Robot (0,0) North [])) == South) && 
+        ((oppositeDirection (Robot (0,0) East [])) == West)
+\end{verbatim}
+Tests whether a robot facing north has south as its opposite direction and one facing east has west as its opposite.
+
+\item Unit test for \verb=turnLeft= and \verb=turnRight=
+\begin{verbatim}
+test4 = TestCase $ assertBool "Turn left or right" $ 
+        ((turnLeft (Robot (0,0) North [])) == West) && 
+        ((turnRight (Robot (0,0) North [])) == East)
+\end{verbatim}
+Tests whether a robot facing north has west on its left side and east on its right side.
+
+\item Unit test for \verb=evalCond=
+\begin{verbatim}
+test5 = TestCase $ assertBool "evalCond tests" $ 
+        (evalCond (And (Wall ToLeft) (Not AtGoalPos)) w)
+         where w = (initialWorld test1Maze)
+\end{verbatim}
+Tests wether the robot in world \verb=w= has a wall to his left and is not at the goal position. If \verb=evalCond= behaves correctly this should return \verb=True=
+
+\item Unit test for \verb=runRC= inside \verb=RobotCommand=, which also tests \verb=interp=
+\begin{verbatim}
+test6Program =(interp $ Block [While (Wall Ahead) TurnLeft, Forward, 
+                               Forward, Backward, TurnRight])
+
+test6 = TestCase $ assertBool "interp tests" $ 
+        (let m = (runRC test6Program (initialWorld test1Maze)) in case m of
+        Nothing -> False 
+        Just (_,w) -> ((position (robot w)) == (1,0)) && 
+             ((direction (robot w)) == South))
+\end{verbatim}
+Tests wether, by running \verb=test6Program= results in a robot in position $(1,0)$ facing south.
+
+\item Unit test for \verb=runProg=, with a given maze and program
+\begin{verbatim}
+test7Maze = fromList [((0,0),[South,West]),((0,1),[North,West,East]),
+                      ((1,0),[South,East]),((1,1),[North,East,West])]
+
+test7Program = Program{statement=(Block [TurnRight,
+    While (And (Not (AtGoalPos)) (Not $ Not $ Not $ AtGoalPos))
+        (If (Not (Wall Ahead))
+            Forward
+            (Block [TurnLeft, Forward, TurnRight]))])} 
+
+test7 = TestCase $ assertBool "runProg" $ (runProg test7Maze test7Program)
+       == (Just ([(1,1),(1,0),(0,0)],East))
+\end{verbatim}
+Tests whether \verb=runProg= results in a state that we can predict by looking at the maze and program given to it.
+\end{enumerate}
 
 \end{document}
 

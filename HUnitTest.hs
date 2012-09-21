@@ -9,27 +9,40 @@ test1Maze = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),((0,
 
 test1 = TestCase $ assertBool "Go 3 north" $ (0,3) == (go 3 North (0,0))
 
-test2 = TestCase $ assertBool "Check hasWall in testMase" $ (hasWall test1Maze (0,0) West) && (not $ hasWall test1Maze (0,0) East)
+test2 = TestCase $ assertBool "Check hasWall in testMase" $ 
+        (hasWall test1Maze (0,0) West) && (not $ hasWall test1Maze (0,0) East)
 
-test3 = TestCase $ assertBool "Opposite direction" $ ((oppositeDirection (Robot (0,0) North [])) == South) && ((oppositeDirection (Robot (0,0) East [])) == West)
+test3 = TestCase $ assertBool "Opposite direction" $ 
+        ((oppositeDirection (Robot (0,0) North [])) == South) && 
+        ((oppositeDirection (Robot (0,0) East [])) == West)
 
-test4 = TestCase $ assertBool "Turn left or right" $ ((turnLeft (Robot (0,0) North [])) == West) && ((turnRight (Robot (0,0) North [])) == East)
+test4 = TestCase $ assertBool "Turn left or right" $ 
+        ((turnLeft (Robot (0,0) North [])) == West) && 
+        ((turnRight (Robot (0,0) North [])) == East)
 
-test5 = TestCase $ assertBool "evalCond tests" $ (evalCond (And (Wall ToLeft) (Not AtGoalPos)) w)
+test5 = TestCase $ assertBool "evalCond tests" $ 
+        (evalCond (And (Wall ToLeft) (Not AtGoalPos)) w)
          where w = (initialWorld test1Maze)
 
 test6Program =(interp $ Block [While (Wall Ahead) TurnLeft, Forward, Forward, Backward, TurnRight])
 
-test6 = TestCase $ assertBool "interp tests" $ (let m = (runRC test6Program (initialWorld test1Maze)) in case m of
-      Nothing -> False 
-      Just (_,w) -> ((position (robot w)) == (1,0)) && ((direction (robot w)) == South))
+test6 = TestCase $ assertBool "interp tests" $ 
+        (let m = (runRC test6Program (initialWorld test1Maze)) in case m of
+        Nothing -> False 
+        Just (_,w) -> ((position (robot w)) == (1,0)) && 
+             ((direction (robot w)) == South))
 
-test7Maze = fromList [((0,0),[South,West]),((0,1),[North,West,East]),((1,0),[South,East]),((1,1),[North,East,West])]
+test7Maze = fromList [((0,0),[South,West]),((0,1),[North,West,East]),
+                      ((1,0),[South,East]),((1,1),[North,East,West])]
 
 test7Program = Program{statement=(Block [TurnRight,
-   While (And (Not (AtGoalPos)) (Not $ Not $ Not $ AtGoalPos)) (If (Not (Wall Ahead)) Forward (Block [TurnLeft, Forward, TurnRight]))])} 
+    While (And (Not (AtGoalPos)) (Not $ Not $ Not $ AtGoalPos))
+        (If (Not (Wall Ahead))
+            Forward
+            (Block [TurnLeft, Forward, TurnRight]))])} 
 
-test7 = TestCase $ assertBool "runProg" $ (runProg test7Maze test7Program) == (Just ([(1,1),(1,0),(0,0)],East))
+test7 = TestCase $ assertBool "runProg" $ (runProg test7Maze test7Program)
+       == (Just ([(1,1),(1,0),(0,0)],East))
 
 test8Program1 = Program{statement=(Block [TurnRight, Forward, Forward, Forward])}
 

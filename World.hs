@@ -78,8 +78,6 @@ initialWorld :: Maze -> World
 initialWorld maze = World maze robot
              where robot = Robot (0,0) North [(0,0)]
 
--- RobotCommand and it's Monad implementation heavily influenced
--- by the State monad.
 newtype RobotCommand a = RC { runRC :: World -> Maybe (a, World) }
 
 instance Monad RobotCommand where
@@ -201,17 +199,3 @@ runProg m p = let w = (initialWorld m)
                       (_,w') <-  (runRC rc) w
                       let robo = robot w'
                       return (history robo, direction robo)
-                 
-
-
-
-
--- Block case will be just like the [IO a] -> IO [a] from class
-
--- World :: RobotCommand World
--- setRobot :: Robot -> RobotCommand()
-
--- interp Forward = do w <- World
---                     let r = robot w
---                     r' <- do shit to the robot
---                     setRobot r'
