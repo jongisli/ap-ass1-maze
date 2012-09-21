@@ -2,3 +2,7 @@
 *.hi
 *.swp
 *.o
+*.log
+*.aux
+*.pdf
+*.synctex.gz

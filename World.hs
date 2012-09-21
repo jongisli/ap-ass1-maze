@@ -26,16 +26,15 @@ go n West (ew, ns) = (ew-n, ns)
 hasWall :: Maze -> Position -> Direction -> Bool
 hasWall (Maze map _ _) pos dir = elem dir $ fromMaybe [] $ M.lookup pos map
 
-validMove :: Maze -> Position -> Position -> Bool
-validMove maze (x1, y1) (x2, y2) 
-          | x1 == x2 && y1 == y2+1 = (not (hasWall maze (x1, y1) South))
-                                     || (not (hasWall maze (x2, y2) North))
-          | x1 == x2 && y1+1 == y2 = (not (hasWall maze (x1, y1) North))        
-                                     || (not (hasWall maze (x2, y2) South))
-          | y1 == y2 && x1 == x2+1 = (not (hasWall maze (x1, y1) West))
-                                     || (not (hasWall maze (x2, y2) East))
-          | y1 == y2 && x1+1 == x2 = (not (hasWall maze (x1, y1) East))
-                                     || (not (hasWall maze (x2, y2) West))
+hasBorder :: Maze -> Position -> Direction -> Bool
+hasBorder (Maze _ w h) (0,_) West = True
+hasBorder (Maze _ w h) (x,_) East = (x == w-1)
+hasBorder (Maze _ w h) (_,0) South = True
+hasBorder (Maze _ w h) (_,y) North = (y == h-1)
+hasBorder _ _ _ = False
+
+validMove :: Maze -> Position -> Direction -> Bool
+validMove m p d = not ((hasWall m p d) || (hasBorder m p d))
 
 fromList :: [(Position, [Direction])] -> Maze
 fromList lst = Maze (M.fromList lst) (maximum xCoords + 1) (maximum yCoords + 1)
@@ -129,31 +128,35 @@ evalCond AtGoalPos w = (position robo) == (width',height')
 
 interp :: Stm -> RobotCommand ()
 interp Forward = RC (\w ->
-    if not (hasWall (maze w) (position (robot w)) (direction (robot w))) then
+    (let robo = robot w
+         mze  = maze w in
+    if (validMove mze (position robo) (direction robo)) then
        Just ((),
          World
-	   (maze w)
-           (let p = (go 1 (direction (robot w)) (position (robot w))) in
+	   mze
+           (let p = (go 1 (direction robo) (position robo)) in
 	   (Robot
 	     p
-	     (direction (robot w))
-	     (p:(history (robot w))))))
+	     (direction robo)
+	     (p:(history robo)))))
     else
        Nothing
-  )
+  ))
 interp Backward = RC (\w ->
-    if not (hasWall (maze w) (position (robot w)) (oppositeDirection (robot w))) then
+    (let robo = robot w
+         mze  = maze w in
+    if (validMove mze (position robo) (oppositeDirection robo)) then
        Just ((),
          World
-	   (maze w)
-	   (let p = (go (-1) (direction (robot w)) (position (robot w))) in
+	   mze
+	   (let p = (go (-1) (direction robo) (position robo)) in
 	   (Robot
 	     p
-	     (direction (robot w))
-	     (p:(history (robot w))))))
+	     (direction robo)
+	     (p:(history robo)))))
     else
        Nothing
-  )
+  ))
 
 interp TurnRight = RC (\w -> do
     return ((),
