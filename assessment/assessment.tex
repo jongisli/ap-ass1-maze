@@ -51,7 +51,7 @@ where we use the record syntax for our Maze for easier access to the values. We 
 	\item \verb=validMove :: Maze -> Position -> Direction -> Bool=
 	\item \verb=fromList :: [(Position, [Direction])] -> Maze=.
 \end{enumerate}
-We should still note that \verb=go= takes an \verb=Int= as a parameter. By doing that we can tell the robot to move one cell in the opposite direction by setting this parameter to $-1$. In this part of the code we also included some of the test mazes we used while developing the code to verify (or justify) that we were on the right track. The functions \verb=hasWall= and \verb=hasBorder= check if there is a wall or if the border of the maze is in the direction of the given position in the maze. The function \verb=validMove= just checks that neither of the \verb=hasWall= and \verb=hasBorder= functions return true. The \verb=fromList= function takes a list of tuples of positions and cells and creates a maze.
+Note that \verb=go= takes an \verb=Int= as a parameter. By doing that we can tell the robot to move one cell in the opposite direction by setting this parameter to $-1$. The functions \verb=hasWall= and \verb=hasBorder= check if there is a wall or if the border of the maze is in the direction of the given position in the maze. The function \verb=validMove= just checks that neither of the \verb=hasWall= and \verb=hasBorder= functions return true. The \verb=fromList= function takes a list of tuples of positions and cells and creates a maze.
 
 \subsection{A MEL interpreter}
 
@@ -201,7 +201,6 @@ test8 = TestCase $ assertBool "runProg, walking into a border and a wall" $
 \end{verbatim}
 Tests whether our code handles our error-cases correctly. If a robot walks into either a wall or the border of the maze, we should enter an erroneous state.
 \end{enumerate}
-This is our way justifying the correctness of our code.
 \end{document}
 
 
