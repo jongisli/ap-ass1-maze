@@ -1,9 +1,7 @@
 import Test.HUnit
 import Data.Maybe (fromMaybe)
 import World
-
-
-
+import MEL
 
 test1Maze = fromList [((0,0),[North,South,West]),((0,1),[North,South,West]),
                       ((0,2),[South,West]),((0,3),[West,East]),
@@ -69,3 +67,5 @@ test8 = TestCase $ assertBool "runProg, walking into a border and a wall" $
 tests = TestList [test1, test2, test3, test4, test5, test6, test7, test8]
 
 main = runTestTT tests
+
+{- OLEKS 0: Good. -}
