@@ -3,6 +3,7 @@
 module MEL where
 
 import World
+import Data.Maybe
 
 {- OLEKS -1: Yes, this should've been in a different module. -}
 
@@ -27,7 +28,7 @@ data Stm = Forward
 data Robot = Robot { position :: Position,
                      direction :: Direction,
                      history :: [Position] }
-             deriving(Show)
+             deriving(Show, Eq)
 data World = World { maze :: Maze,
                      robot :: Robot }
             deriving(Show)
@@ -42,9 +43,9 @@ type Result = Maybe
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (0,0) North [(0,0)]
+             where robot = Robot (0,0) West [(0,0)]
 
-newtype RobotCommand a = RC { runRC :: World -> Maybe (a, World) }
+newtype RobotCommand a = RC { runRC :: World -> Maybe (a, Robot) }
 {- OLEKS -2: This type declaration does not indicate that a robot command
 cannot modify the maze in the world as we asked for. -}
 
@@ -52,10 +53,10 @@ cannot modify the maze in the world as we asked for. -}
 that it faild. -}
 
 instance Monad RobotCommand where
-         return x = RC (\w -> Just (x, w))
+         return x = RC (\w -> Just (x, robot w))
          processor >>= processorGenerator = RC $ \w ->
-                                   let Just (x, w') = runRC processor w
-                                   in runRC (processorGenerator x) w'
+                                   let Just (x, r') = runRC processor w
+                                   in runRC (processorGenerator x) (World (maze w) r')
 
 
 {- OLEKS -2: This definition of bind EXPLICITLY allows for a RobotCommand to
@@ -100,8 +101,6 @@ evalCond AtGoalPos w = (position robo) == (width',height')
                              width' = (width (maze w)) - 1
                              height' = (height (maze w)) - 1
 
-interp :: Stm -> RobotCommand ()
-
 {- OLEKS -2: Please use the more elegant do notation. Define functions
 
 getRobot :: RobotCommand Robot
@@ -114,72 +113,74 @@ to get the robot/maze out of the monad and put the robot back in the monad
 respectively. Then you should be able to make your interp somewhat more pretty
 and reduce the boilerplate. -}
 
-interp Forward = RC (\w ->
-    (let robo = robot w
-         mze  = maze w in
-    if (validMove mze (position robo) (direction robo)) then
-       Just ((),
-         World
-	   mze
-           (let p = (go 1 (direction robo) (position robo)) in
-	   (Robot
-	     p
-	     (direction robo)
-	     (p:(history robo)))))
-    else
-       Nothing
-  ))
-interp Backward = RC (\w ->
-    (let robo = robot w
-         mze  = maze w in
-    if (validMove mze (position robo) (oppositeDirection robo)) then
-       Just ((),
-         World
-	   mze
-	   (let p = (go (-1) (direction robo) (position robo)) in
-	   (Robot
-	     p
-	     (direction robo)
-	     (p:(history robo)))))
-    else
-       Nothing
-  ))
+getRobot :: RobotCommand Robot
+getRobot = RC (\w -> Just (robot w, robot w))
 
-interp TurnRight = RC (\w -> do
-    return ((),
-      World
-        (maze w)
-        (Robot
-          (position (robot w))
-          (turnRight (robot w))
-          (history (robot w)))))
+getMaze :: RobotCommand Maze
+getMaze = RC (\w -> Just (maze w, robot w))
 
-interp TurnLeft = RC (\w -> do
-    return ((),
-      World
-        (maze w)
-        (Robot
-          (position (robot w))
-          (turnLeft (robot w))
-          (history (robot w)))))
+getWorld :: RobotCommand World
+getWorld = RC (\w -> Just (w, robot w))
 
-interp (If c s1 s2) = RC (\w -> 
-    if (evalCond c w) then 
-        (runRC (interp s1) w)
-    else 
-        (runRC (interp s2) w))
+putRobot :: Robot -> RobotCommand ()
+putRobot r = RC (\w -> Just ((), r))
 
-interp (While c s) = RC (\w ->
-    if (not $ evalCond c w) then do
-        return ((), w)
-    else do
-        (_,w') <- runRC (interp s) w
-        (runRC (interp (While c s)) w'))
+interp :: Stm -> RobotCommand ()
 
-interp (Block []) = RC (\w -> Just((),w))
-interp (Block (s:ss)) = RC (\w ->
-                      do (_,w') <- runRC (interp s) w
-                         (runRC (interp (Block ss)) w'))
+interp Forward = do 
+       robo <- getRobot
+       mze  <- getMaze
+       let p = (go 1 (direction robo) (position robo))
+       if (validMove mze (position robo) (direction robo)) then
+           putRobot (Robot p (direction robo) (p:(history robo)))
+       else
+           putRobot robo
+
+interp Backward = do 
+       robo <- getRobot
+       mze  <- getMaze
+       let p = (go (-1) (direction robo) (position robo))
+       if (validMove mze (position robo) (oppositeDirection robo)) then
+           putRobot (Robot p (direction robo) (p:(history robo)))
+       else
+           putRobot robo
+
+
+interp TurnRight = do
+       robo <- getRobot
+       putRobot (Robot (position robo) (turnRight robo) (history robo))
+
+
+interp TurnLeft = do
+       robo <- getRobot
+       putRobot (Robot (position robo) (turnLeft robo) (history robo))
+
+interp (If c s1 s2) = do
+       w <- getWorld
+       if (evalCond c w) then 
+          interp s1
+       else 
+          interp s2
+
+interp (While c s) = do
+       w <- getWorld
+       if (not $ evalCond c w) then do
+           return ()
+       else do
+           interp s
+           interp (While c s)
+
+interp (Block []) = return ()
+interp (Block (s:ss)) = do
+       interp s
+       interp (Block ss)
+
+{-       
+runProg :: Maze -> Program -> Result ([Position], Direction)
+runProg m p = do
+        let w = initialWorld m
+        runRC (interp (statement p)) w
+
 
 runProg :: Maze -> Program -> Result ([Position], Direction)
 runProg m p = let w = (initialWorld m)
@@ -189,4 +190,4 @@ runProg m p = let w = (initialWorld m)
                       let robo = robot w'
                       return (history robo, direction robo)
 
-
+-}
