@@ -5,8 +5,6 @@ module MEL where
 import World
 import Data.Maybe
 
-{- OLEKS -1: Yes, this should've been in a different module. -}
-
 data Relative = Ahead | ToLeft | ToRight | Behind
               deriving (Eq, Show)
 
@@ -35,32 +33,21 @@ data World = World { maze :: Maze,
 
 data Program = Program {statement :: Stm}
 
-{- OLEKS -1: The latest version of the assignment text asks you to let Program
-be a type alias for Stm, but this is OKAY, just don't diverge like this in an
-exam sittuation. -}
-
 type Result = Maybe
 
 initialWorld :: Maze -> World
 initialWorld maze = World maze robot
-             where robot = Robot (0,0) West [(0,0)]
+             where robot = Robot (0,0) North [(0,0)]
 
 newtype RobotCommand a = RC { runRC :: World -> Maybe (a, Robot) }
-{- OLEKS -2: This type declaration does not indicate that a robot command
-cannot modify the maze in the world as we asked for. -}
-
-{- OLEKS 0: Also it would've been nice to know WHERE the robot failed, not just
-that it faild. -}
 
 instance Monad RobotCommand where
          return x = RC (\w -> Just (x, robot w))
          processor >>= processorGenerator = RC $ \w ->
-                                   let Just (x, r') = runRC processor w
-                                   in runRC (processorGenerator x) (World (maze w) r')
-
-
-{- OLEKS -2: This definition of bind EXPLICITLY allows for a RobotCommand to
-modify the maze in the world. -}
+             let a = runRC processor w in
+             case a of
+                 Just (x, r')-> runRC (processorGenerator x) (World (maze w) r')
+                 Nothing -> Nothing
 
         
 oppositeDirection :: Robot -> Direction
@@ -98,20 +85,8 @@ evalCond (Not c) w = not (evalCond c w)
 evalCond (And c1 c2) w = (evalCond c1 w) && (evalCond c2 w)
 evalCond AtGoalPos w = (position robo) == (width',height')
                        where robo = robot w
-                             width' = (width (maze w)) - 1
-                             height' = (height (maze w)) - 1
-
-{- OLEKS -2: Please use the more elegant do notation. Define functions
-
-getRobot :: RobotCommand Robot
-
-getMaze :: RobotCommand Maze
-
-putRobot :: Robot -> RobotCommand ()
-
-to get the robot/maze out of the monad and put the robot back in the monad
-respectively. Then you should be able to make your interp somewhat more pretty
-and reduce the boilerplate. -}
+                             width' = (getWidth (maze w)) - 1
+                             height' = (getHeight (maze w)) - 1
 
 getRobot :: RobotCommand Robot
 getRobot = RC (\w -> Just (robot w, robot w))
@@ -125,6 +100,9 @@ getWorld = RC (\w -> Just (w, robot w))
 putRobot :: Robot -> RobotCommand ()
 putRobot r = RC (\w -> Just ((), r))
 
+putNothing :: RobotCommand ()
+putNothing = RC (\w -> Nothing)
+
 interp :: Stm -> RobotCommand ()
 
 interp Forward = do 
@@ -134,7 +112,7 @@ interp Forward = do
        if (validMove mze (position robo) (direction robo)) then
            putRobot (Robot p (direction robo) (p:(history robo)))
        else
-           putRobot robo
+           putNothing
 
 interp Backward = do 
        robo <- getRobot
@@ -143,7 +121,7 @@ interp Backward = do
        if (validMove mze (position robo) (oppositeDirection robo)) then
            putRobot (Robot p (direction robo) (p:(history robo)))
        else
-           putRobot robo
+           putNothing
 
 
 interp TurnRight = do
@@ -175,19 +153,9 @@ interp (Block (s:ss)) = do
        interp s
        interp (Block ss)
 
-{-       
+       
 runProg :: Maze -> Program -> Result ([Position], Direction)
 runProg m p = do
         let w = initialWorld m
-        runRC (interp (statement p)) w
-
-
-runProg :: Maze -> Program -> Result ([Position], Direction)
-runProg m p = let w = (initialWorld m)
-                  rc = (interp (statement p)) in
-                  do
-                      (_,w') <-  (runRC rc) w
-                      let robo = robot w'
-                      return (history robo, direction robo)
-
--}
+        (_,r') <- runRC (interp (statement p)) w
+        return (history r', direction r')

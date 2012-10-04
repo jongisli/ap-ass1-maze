@@ -1,9 +1,6 @@
 -- PART 1: Modelling the world
 
-module World where
-
-{- OLEKS -1: It's always a good idea to qualify what you want exported from a
-module. -}
+module World(Maze,fromList,Direction(..),Position,Cell,hasWall,hasBorder,validMove, go, getWidth, getHeight) where
 
 import qualified Data.Map as M
 import Data.Maybe
@@ -20,12 +17,11 @@ data Maze = Maze { posToCell :: (M.Map Position Cell),
                    height :: Int 
                    } deriving(Show)
 
-{- OLEKS -2: Because Maze is NOT an ADT, it lets Maze have e.g. height and
-width of any valid Int, i.e. for instance negative, which is of course
-non-sensical. Please make sure to eliminate this problem. Yes, this is internal
-to this module, but you'd like to split your code into multiple modules as
-well. -}
+getWidth :: Maze -> Int
+getWidth m = width m
 
+getHeight :: Maze -> Int
+getHeight m = height m
 
 go :: Int -> Direction -> Position -> Position
 go n North (ew, ns) = (ew, ns+n)

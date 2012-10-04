@@ -37,8 +37,8 @@ test6Program =(interp $ Block [While (Wall Ahead) TurnLeft, Forward, Forward, Ba
 test6 = TestCase $ assertBool "interp tests" $ 
         (let m = (runRC test6Program (initialWorld test1Maze)) in case m of
         Nothing -> False 
-        Just (_,w) -> ((position (robot w)) == (1,0)) && 
-             ((direction (robot w)) == South))
+        Just (_,r) -> ((position r) == (1,0)) && 
+             ((direction r) == South))
 
 test7Maze = fromList [((0,0),[South,West]),((0,1),[North,West,East]),
                       ((1,0),[South,East]),((1,1),[North,East,West])]

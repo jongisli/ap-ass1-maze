@@ -25,7 +25,7 @@
 
 \section{The code}
 
-In this section we will go through our code in the file \verb=World.hs=.
+In this section we will go through our code in the files \verb=World.hs= and \verb=MEL.hs=..
 
 \subsection{Modelling the World}
 
@@ -43,8 +43,10 @@ data Maze = Maze { posToCell :: (M.Map Position Cell),
                    height :: Int 
                    } deriving(Show)
 \end{verbatim}
-where we use the record syntax for our Maze for easier access to the values. We also have some functions to manipulate positions, query the maze and to make our lives easier. The declarations for those functions are:
+We also have some functions to manipulate positions, query the maze and to make our lives easier. The declarations for those functions are:
 \begin{enumerate}[i.]
+	\item \verb=getWidth :: Maze -> Int=.
+	\item \verb=getHeight :: Maze -> Int=.
 	\item \verb=go :: Int -> Direction -> Position -> Position=
 	\item \verb=hasWall :: Maze -> Position -> Direction -> Bool=
 	\item \verb=hasBorder :: Maze -> Position -> Direction -> Bool=
@@ -88,10 +90,39 @@ data Program = Program {statement :: Stm}
 
 type Result = Maybe
 
-newtype RobotCommand a = RC { runRC :: World -> Maybe (a, World) }
+newtype RobotCommand a = RC { runRC :: World -> Maybe (a, Robot) }
 \end{verbatim}
-Here we also use the record syntax in \verb=Robot= and \verb=World= for easier access to values. The type \verb=Program= was also modified to use record syntax.
 For this part we wrote some functions for initialising worlds, interpreting statements, running programs and various helper functions. The function
+\begin{verbatim}
+getRobot :: RobotCommand Robot
+\end{verbatim}
+to access the robot from the monad.
+
+The function
+\begin{verbatim}
+getMaze :: RobotCommand Maze
+\end{verbatim}
+to access the maze from the monad.
+
+The function
+\begin{verbatim}
+getWorld :: RobotCommand World
+\end{verbatim}
+to access the world from the monad.
+
+The function
+\begin{verbatim}
+putRobot :: Robot -> RobotCommand ()
+\end{verbatim}
+to change the robot in the monad.
+
+The function
+\begin{verbatim}
+putNothing :: RobotCommand ()
+\end{verbatim}
+for throwing an error if there is an invalid move.
+
+The function
 \begin{verbatim}
 initialWorld :: Maze -> World
 \end{verbatim}
@@ -113,7 +144,7 @@ Takes a maze and a program, which is essentially a statement, and returns the mo
 
 Our data structures were the most part defined in the problem description. Types that we needed to define ourselves we tried to keep as simple as possible. The functions for querying and moving the robot around in the maze are also trivial and mostly based on pattern matching. One thing to note in this part is that the function fromList traverses the list \verb=lst= twice which is obviously inefficient.
 
-An experienced Haskell programmer might not find the implementation of \verb=interp= too elegant. For example the interpreter is not monadic. Although the code is in general not elegant it is quite robust. We did unit tests for all functions and tested edge cases like the robot hitting a wall or walking outside the maze.
+We implemented a monad instance for RobotCommand and used the do notation in our interp function.
 
 \subsection{Unit testing}
 
